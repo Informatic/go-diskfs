@@ -9,6 +9,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/pierrec/lz4/v4"
+	"github.com/rasky/go-lzo"
 	"github.com/ulikunitz/xz"
 	"github.com/ulikunitz/xz/lzma"
 )
@@ -63,6 +64,34 @@ func (c *CompressorLzma) optionsBytes() []byte {
 }
 func (c *CompressorLzma) flavour() compression {
 	return compressionLzma
+}
+
+// CompressorLzo lzo compression
+type CompressorLzo struct {
+}
+
+func (c *CompressorLzo) compress(in []byte) ([]byte, error) {
+	return lzo.Compress1X(in), nil
+}
+func (c *CompressorLzo) decompress(in []byte) ([]byte, error) {
+	b := bytes.NewReader(in)
+	p, err := lzo.Decompress1X(b, 0, 0)
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing: %v", err)
+	}
+	return p, nil
+}
+
+//nolint:unused,revive // it is important to implement the interface
+func (c *CompressorLzo) loadOptions(b []byte) error {
+	// lzma has no supported optiosn
+	return nil
+}
+func (c *CompressorLzo) optionsBytes() []byte {
+	return []byte{}
+}
+func (c *CompressorLzo) flavour() compression {
+	return compressionLzo
 }
 
 type GzipStrategy uint16
@@ -369,7 +398,7 @@ func newCompressor(flavour compression) (Compressor, error) {
 	case compressionLzma:
 		c = &CompressorLzma{}
 	case compressionLzo:
-		return nil, fmt.Errorf("LZO compression not yet supported")
+		c = &CompressorLzo{}
 	case compressionXz:
 		c = &CompressorXz{}
 	case compressionLz4:

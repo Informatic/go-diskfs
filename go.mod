@@ -15,3 +15,5 @@ require (
 )
 
 require github.com/klauspost/compress v1.17.4
+
+require github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e // indirect
