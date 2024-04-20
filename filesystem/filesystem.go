@@ -14,6 +14,8 @@ type FileSystem interface {
 	Mkdir(string) error
 	// ReadDir read the contents of a directory
 	ReadDir(string) ([]os.FileInfo, error)
+	// ReadLink return symlink target
+	ReadLink(p string) (string, error)
 	// OpenFile open a handle to read or write to a file
 	OpenFile(string, int) (File, error)
 	// Label get the label for the filesystem, or "" if none. Be careful to trim it, as it may contain

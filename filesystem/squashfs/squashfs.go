@@ -313,6 +313,35 @@ func (fs *FileSystem) ReadDir(p string) ([]os.FileInfo, error) {
 	return fi, nil
 }
 
+// ReadLink returns a symlink target filename
+//
+// returns an error if provided path is not a symlink or does not exist
+func (fs *FileSystem) ReadLink(p string) (string, error) {
+	var err error
+
+	// get the path and filename
+	dir := path.Dir(p)
+	filename := path.Base(p)
+
+	// get the directory entries
+	var entries []*directoryEntry
+	entries, err = fs.readDirectory(dir)
+	if err != nil {
+		return "", fmt.Errorf("could not read directory entries for %s", dir)
+	}
+
+	// we now know that the directory exists, see if the file exists
+	for _, e := range entries {
+		eName := e.Name()
+		if eName == filename {
+			// if we got this far, we have found the file
+			return e.Readlink()
+		}
+	}
+
+	return "", fmt.Errorf("target link %s does not exist", p)
+}
+
 // OpenFile returns an io.ReadWriter from which you can read the contents of a file
 // or write contents to the file
 //
@@ -350,10 +379,20 @@ func (fs *FileSystem) OpenFile(p string, flag int) (filesystem.File, error) {
 		for _, e := range entries {
 			eName := e.Name()
 			// cannot do anything with directories
-			if eName == filename && e.IsDir() {
-				return nil, fmt.Errorf("cannot open directory %s as file", p)
-			}
 			if eName == filename {
+				if e.Mode().Type() == os.ModeSymlink {
+					target, err := e.Readlink()
+					if err != nil {
+						return nil, fmt.Errorf("unable to resolve symlink %s", p)
+					}
+
+					return fs.OpenFile(target, flag)
+				}
+
+				if e.IsDir() {
+					return nil, fmt.Errorf("cannot open directory %s as file", p)
+				}
+
 				// if we got this far, we have found the file
 				targetEntry = e
 				break

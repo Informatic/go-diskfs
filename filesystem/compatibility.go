@@ -110,6 +110,10 @@ func (f *fsCompatible) ReadDir(name string) ([]fs.DirEntry, error) {
 	return direntries, nil
 }
 
+func (f *fsCompatible) ReadLink(name string) (string, error) {
+	return f.fs.ReadLink(name)
+}
+
 // FS converts a diskfs FileSystem to a fs.FS for compatibility with
 // other utilities
 func FS(f FileSystem) fs.ReadDirFS {
