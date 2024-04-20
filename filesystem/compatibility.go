@@ -20,7 +20,7 @@ type fakeRootDir struct{}
 
 func (d *fakeRootDir) Name() string       { return "/" }
 func (d *fakeRootDir) Size() int64        { return 0 }
-func (d *fakeRootDir) Mode() fs.FileMode  { return 0 }
+func (d *fakeRootDir) Mode() fs.FileMode  { return fs.ModePerm | fs.ModeDir }
 func (d *fakeRootDir) ModTime() time.Time { return time.Now() }
 func (d *fakeRootDir) IsDir() bool        { return true }
 func (d *fakeRootDir) Sys() any           { return nil }
@@ -98,6 +98,7 @@ func (f *fsCompatible) Open(name string) (fs.File, error) {
 }
 
 func (f *fsCompatible) ReadDir(name string) ([]fs.DirEntry, error) {
+	name = absoluteName(name)
 	entries, err := f.fs.ReadDir(name)
 	if err != nil {
 		return nil, err
