@@ -69,6 +69,27 @@ func absoluteName(name string) string {
 	return name
 }
 
+func (f *fsCompatible) Stat(name string) (fs.FileInfo, error) {
+	var stat os.FileInfo
+	name = absoluteName(name)
+	if name == "/" {
+		return &fakeRootDir{}, nil
+	}
+	dirname := path.Dir(name)
+	if info, err := f.fs.ReadDir(dirname); err == nil {
+		for i := range info {
+			if info[i].Name() == path.Base(name) {
+				stat = info[i]
+				break
+			}
+		}
+	}
+	if stat == nil {
+		return nil, fs.ErrNotExist
+	}
+	return stat, nil
+}
+
 func (f *fsCompatible) Open(name string) (fs.File, error) {
 	var stat os.FileInfo
 	name = absoluteName(name)
@@ -92,7 +113,7 @@ func (f *fsCompatible) Open(name string) (fs.File, error) {
 	}
 	file, err := f.fs.OpenFile(name, os.O_RDONLY)
 	if err != nil {
-		return nil, err
+		return nil, fs.ErrNotExist
 	}
 	return &fsFileWrapper{File: file, stat: stat}, nil
 }
@@ -111,7 +132,7 @@ func (f *fsCompatible) ReadDir(name string) ([]fs.DirEntry, error) {
 }
 
 func (f *fsCompatible) ReadLink(name string) (string, error) {
-	return f.fs.ReadLink(name)
+	return f.fs.ReadLink(absoluteName(name))
 }
 
 // FS converts a diskfs FileSystem to a fs.FS for compatibility with
